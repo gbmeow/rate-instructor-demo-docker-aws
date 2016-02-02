@@ -2,14 +2,14 @@ In this post, we will be building a Docker image and running it on AWS. However,
 if you are looking to do a really awesome tutorial on your local machine using Virtual Box, read [Awesome GET STARTED with Docker and Node.](https://airpair.com/node.js/posts/getting-started-with-docker-for-the-nodejs-dev "AirPair Posts")
 
 ## What to Expect and Why Am I Doing This 
-I created a tutorial for all those that want to host their app on AWS via Docker. 
-I created a sample app (Angular, Mongo, Node) that enables rating an instructor by pressing LIKE (Heart icon). 
+This tutorial is for all those that want to host their app on AWS via Docker. 
+We will be using a sample app (Angular, Mongo, Node) that enables rating an instructor by pressing LIKE (Heart icon). 
 Using the app as our foundation, we will add DOCKER to the app and make it go live on AWS. 
 
 ## Background - Raw Steps 
     
 ### Live Demo – Before Beginning, Check It Out to Get Inspired
-    http://ec2-52-90-103-202.compute-1.amazonaws.com/
+    http://ec2-54-86-155-250.compute-1.amazonaws.com
     
 ### Before Beginning
 
@@ -36,8 +36,10 @@ Output after running a command inside Mongo Shell with:
 
 ### Local Host Test 
 If you wish to run this app on your local machine, feel free to follow these steps:
+
+You can fork this repo too :)
 ```
-    $osxterm: git clone https://github.com/georgebatalinski/rate-instructor.git
+    $osxterm: git clone https://github.com/georgebatalinski/rate-instructor-demo-docker-aws.git
     $osxterm: npm install
     $osxterm: npm start
 ```
@@ -47,25 +49,28 @@ Your web browser: http://localhost:8080
     
     
 ## AWS Signup and the First Instance 
-If you cloned the repo I prepared for you, you got the app now and, after npm install, you should be up and running on port: 8000. If not, make sure you complete -> ### Local Host Test Now 
+If you cloned the repo, you got the app now and, after npm install, you should be up and running on port: 8080. 
+If not, make sure you complete -> ### Local Host Test Now 
 Let’s move from our local environment to the cloud. We all love flying in the clouds. What better way then via Docker?
 
-<INSERT IMAGE FROM VIDEO>
+
+![Image showing our container in AWS](http://s21.postimg.org/3r96w9ocn/Screen_Shot_2016_02_02_at_8_22_25_AM.png)
+Source: [Evan Brown (AWS)](https://youtu.be/OzLXj2W2Rss?list=PLVjIiWGLQYcp_BIIPAB1UuNWMwaL5mXtx)
+
 
 ### Signing Up for AWS and Configuration 
 
-
-I. [Open this AWS guide and keep it in one of your tabs. :)](https://docs.docker.com/machine/drivers/aws/ "Configuration for AWS driver")
-    Any of the flags/configurations that we will use will all come from here.
-
-II. [Create an AWS account FREE tier.](https://aws.amazon.com/console/ "Amazon Console")
-III. Keep your access ID, secret key, and VPC ID handy. 
-
-Here is how you can see you VPC ID:
-[AWS VPCIP](https://www.evernote.com/l/AF3K_mYH59hD7IvA42598ZwyOYdSvfIOz9w)
+I. [Create an AWS account FREE tier.](https://aws.amazon.com/console/ "Amazon Console")
+II. Note down your access ID, secret key
+III. Go create a VPC /or use the default (in correct Availability zone)
+![AWS VPCIP](https://www.evernote.com/l/AF3K_mYH59hD7IvA42598ZwyOYdSvfIOz9w)
+IIII. Check if there is an existing security group, if not create one. 
+NOTE: Security groups - allow you to setup rules around what/who can access your VPC, and control access from individual instances.
+![Security Group](https://www.evernote.com/l/AF0buUB-AENF0aiRrOa0l7Uwxxemvl_9wXI)
 
 NOTE: To get the VPC ID, click on the VPC icon in the Amazon Console Dashboard. 
 NOTE #2: For a simple setup, use the "Start VPC Wizard." If you are not familiar why we need to setup a VPC: [Amazon Virtual Private Cloud (VPC)](https://aws.amazon.com/vpc/) 
+NOTE: [AWS guide reference](https://docs.docker.com/machine/drivers/aws/)
 
 
 ### Creating a VM (or Docker Machine) on AWS 
@@ -77,23 +82,41 @@ export AWS_SECRET_ACCESS_KEY=<secret-key>
 export AWS_VPC_ID=<VPC id> 
 ```
 
-Next, we will create a VM. Using Docker-machine create will provision a host and create all the required keys for us to access the instance over SSH. Once the keys are issued, Docker daemon will be configured to accept remote connections.
+Next, we will create a VM. 'docker-machine create' will provision a 
+host and create all the required keys for us to access the instance over SSH. 
+Once the keys are issued, Docker daemon will be configured to accept remote connections.
 
 If you would like to see where the keys are stored, go to the following directory. On my machine, it is here: 
 
 ```
- $osxterm: ~/.docker/machine/machines/test-george 
+ $osxterm: ~/.docker/machine/machines/<vm-name> 
 ```
 
 ```
 $osxterm: docker-machine -D create \
     --driver amazonec2 \
-    --amazonec2-access-key <AWS_ACCESS_KEY_ID> \
-    --amazonec2-secret-key <AWS_SECRET_ACCESS_KEY> \
-    --amazonec2-vpc-id <AWS_VPC_ID> \
+    --amazonec2-access-key $AWS_ACCESS_KEY_ID \
+    --amazonec2-secret-key $AWS_SECRET_ACCESS_KEY \
+    --amazonec2-vpc-id $AWS_VPC_ID \
     --amazonec2-zone a \
-    tennis-partner
+    <your-vm-name>
 ```
+
+
+Common Errors 
+
+Error creating machine: Error with pre-create check: unable to find a subnet in the zone: us-east-1a
+Check the zone - you are passing to the console - you may not have a subnet created 
+```
+--amazonec2-zone b \
+```
+
+Error creating machine: Error in driver during machine creation: Error launching instance: Problem with AWS API call: Non-200 API response: code=400 message=Security group sg-7d034304 and subnet subnet-6f778b45 belong to different networks.
+
+```
+Check your subnet and security group, make sure they are tied together.
+```
+
 
 The biggies: 
 
@@ -101,22 +124,23 @@ The biggies:
      A driver is a set of defaults/requirements [If you can and are curious, read GO.](https://github.com/docker/machine/blob/master/drivers/amazonec2/amazonec2.go "AirPair Posts")
  
 --amazonec2-zone. 
-Note: defaultRegion = "us-east-1" If you wanted to specify a different region, use amazonec2-region.
+Note: defaultRegion = "us-east-1" If you wanted to specify a different region, use --amazonec2-region.
 
---tennis-partner. It is the name of the Docker machine. Name it what you like (e.g., {you-choose-name}). 
+<your-vm-name> It is the name of the Docker machine. Name it what you like (e.g., {you-choose-name}). 
 
 
 
 Using the following subshell method, our remote host behaves much like the local host:
 ```
-    $osxterm: eval "$(docker-machine env tennis-partner)"
+    $osxterm: eval "$(docker-machine env <your-vm-name>)"
 ```
+
 
 
 If you still are in awe (and cannot believe) that you created an instance on AWS, run the following simple tests to be triple sure: 
 ```
     $osxterm: docker-machine active 
-    %: tennis-partner
+    %: <your-vm-name>
     
     $osxterm: docker run busybox echo hello world
     %: hello world
@@ -127,14 +151,10 @@ If you still are in awe (and cannot believe) that you created an instance on AWS
 ## Adding Docker to the Mix 
 
 ### Dockerfile for Your Project 
-A Dockerfile consists of instructions that will create an image for you to use with Docker. Its purpose is to automate the copying and installation of the system requirements for the environment you want. 
+A Dockerfile consists of instructions that will create an image for you to use with Docker. 
+Its purpose is to automate the copying and installation of the system requirements for the environment you want. 
  
-To start off, let’s start with an application using branch[clean-slate] from the following repo:
-```
-   $osxterm: git clone https://github.com/georgebatalinski/rate-instructor.git
-   $osxterm: git checkout clean-slate
-```
-
+ 
 Creating a Docker file is easy; Using your favorite code editor, create a new file named 'Dockerfile', or via Terminal: 
 
 ```
@@ -143,52 +163,50 @@ Creating a Docker file is easy; Using your favorite code editor, create a new fi
 
 Here is a sample environment that we will be working with for our app. Feel free to copy this into your local file (For the most part, all we are doing here is creating an image and moving files from our local system to the remote.).
 
-<TODO UPDATE EXAMPLE>
 ```
-FROM node 
+FROM centos:centos6
 
-RUN mkdir -p /usr/src/app
+# Enable Extra Packages for Enterprise Linux (EPEL) for CentOS
+RUN yum install -y epel-release
+# Install Node.js and npm
+RUN yum install -y nodejs npm
 
-## run npm install
-WORKDIR /usr/src/app
-COPY ./package.json /usr/src/app
-RUN npm install
+# Install app dependencies
+COPY package.json /src/package.json
+RUN cd /src; npm install
 
-## copy the app
-ADD . /usr/src/app
+# Bundle app source
+COPY . /src
 
-## expose the port
-EXPOSE 8000
-
-## run the API
-CMD ["/usr/local/bin/node", "/usr/src/app/server.js"]
+EXPOSE  8080
+CMD ["node", "/src/index.js"]
 
 ```
 
 The biggies: 
 
-FROM node. Any Dockerfile must start with an image (In our case, we want to run a node server.). You can find images like MongoDB, Redis, etc. right here: [Images](https://hub.docker.com/)
+FROM - centos. Any Dockerfile must start with an image. You can find images like MongoDB, Redis, etc. right here: [Images](https://hub.docker.com/)
 
-EXPOSE 8000. Internal port for the CONTAINER. This is what server.js is listening to. See app.listen(8000);
+EXPOSE 8080 - Internal port for the CONTAINER. This is what server.js is listening to. See app.listen(8000);
 
-CMD ["/usr/local/bin/node", "/usr/src/app/server.js"]. You can only have 1 CMD per Dockerfile; if you have multiple CMDs, only the last one is going to get executed. If you need to run any additional commands, before starting the server, use 'RUN' (see where we 'npm install').
+CMD ["node", "/src/index.js"] - You can only have 1 CMD per Dockerfile; if you have multiple CMDs, the last one is going to get executed. If you need to run any additional commands, before starting the server, use 'RUN' (see where we 'npm install').
 
 
 ### Docker-compose File 
-We are setting up an application that will require multi-container setup (a container for App, container for DB, container for Data storage). In order to create a multi-container environment, without creating too much work for ourselves, we have a command, 'docker-compose up', which will use the above Dockerfile to build our containers from some fancy images and Dockerfiles.
+We are setting up an application that will require multi-container env (a container for App, container for DB, container for Data storage). 
+In order to create a multi-container environment, we have 'docker-compose up', which will use the above Dockerfile to build our containers from some fancy images and Dockerfiles.
 
 
 Create and copy the contents of the following file: 
 
-dockerfile-compose.yml 
+docker-compose.yml
 ```
 app:
   build: .
   ports:
-    - "80:8000"
+    - "80:8080"
   links:
     - db
-  working_dir: /usr/src/app
     
 db:
   image: mongo
@@ -214,18 +232,18 @@ MongoDB stores its data in the data directory specified by dbpath. It uses a dat
 
 
 
-## Last Part: We are Done With Docker—Let’s Build on AWS 
+### Last Part: We are Done With Docker—Let’s Build on AWS 
 All the setup is done. We now get the payoff:
 
 ```
-    $osxterm: docker-compose up -d 
+    $osxterm: docker-compose up
 ```
 
-Check Public DNS (from AWS). In my case, it is: (this is the live product now). If your instance is not running, or you have an error, add it to the comments below.     http://ec2-52-90-103-202.compute-1.amazonaws.com
+Check Public DNS (from AWS). In my case, it is: (this is the live product now). If your instance is not running, or you have an error, add it to the comments below.    
+http://ec2-54-86-155-250.compute-1.amazonaws.com/
 
 
-
-### Fill Your DB With Data
+## Fill Your DB With Data
 Let’s add some data to our MongoDB, so we can actually see something on the page, while our app is running. 
 
 ### Get Into Our OS on Docker
@@ -302,12 +320,6 @@ If you are a serious admin, you may want to back up the created database. So you
 Read the article [Compose](https://docs.docker.com/compose/compose-file "AirPair Posts")
 
 ## Common Errors 
-
-### SSH Fails After Creation 
-```
-SSH cmd err, output: exit status 255: 
-Error getting ssh command 'exit 0' : Something went wrong running an SSH command!
-```
 
 ### Unable to Connect to MongoDB via Robomongo 
 ```
