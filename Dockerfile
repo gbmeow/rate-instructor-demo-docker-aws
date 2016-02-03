@@ -6,11 +6,11 @@ RUN yum install -y epel-release
 RUN yum install -y nodejs npm
 
 # Install app dependencies
-COPY package.json /src/package.json
-RUN cd /src; npm install
+COPY ./package.json /src/package.json
+RUN cd /src; ls -l; npm install --production
 
 # Bundle app source
 COPY . /src
 
 EXPOSE  8080
-CMD ["node", "/src/index.js"]
+CMD ["node", "/src/server.js"]

@@ -135,6 +135,18 @@ Using the following subshell method, our remote host behaves much like the local
     $osxterm: eval "$(docker-machine env <your-vm-name>)"
 ```
 
+ERROR (if you are getting any of this)
+```
+Jerzys-MacBook-Air:rate-instructor-demo-docker-aws jerzybatalinski$ dm start putanga
+Host does not exist: "putanga"
+```
+
+Make sure the machine exists 
+```
+ls -al ~/.docker/machine/machines
+```
+
+
 
 
 If you still are in awe (and cannot believe) that you created an instance on AWS, run the following simple tests to be triple sure: 
@@ -172,14 +184,14 @@ RUN yum install -y epel-release
 RUN yum install -y nodejs npm
 
 # Install app dependencies
-COPY package.json /src/package.json
-RUN cd /src; npm install
+COPY ./package.json /src/package.json
+RUN cd /src; npm install --production
 
 # Bundle app source
 COPY . /src
 
 EXPOSE  8080
-CMD ["node", "/src/index.js"]
+CMD ["node", "/src/server.js"]
 
 ```
 
@@ -189,7 +201,7 @@ FROM - centos. Any Dockerfile must start with an image. You can find images like
 
 EXPOSE 8080 - Internal port for the CONTAINER. This is what server.js is listening to. See app.listen(8000);
 
-CMD ["node", "/src/index.js"] - You can only have 1 CMD per Dockerfile; if you have multiple CMDs, the last one is going to get executed. If you need to run any additional commands, before starting the server, use 'RUN' (see where we 'npm install').
+CMD ["node", "/src/server.js"] - You can only have 1 CMD per Dockerfile; if you have multiple CMDs, the last one is going to get executed. If you need to run any additional commands, before starting the server, use 'RUN' (see where we 'npm install').
 
 
 ### Docker-compose File 
@@ -239,7 +251,7 @@ All the setup is done. We now get the payoff:
     $osxterm: docker-compose up
 ```
 
-Check Public DNS (from AWS). In my case, it is: (this is the live product now). If your instance is not running, or you have an error, add it to the comments below.    
+Check Public DNS (from AWS) - you should be up and running.    
 http://ec2-54-86-155-250.compute-1.amazonaws.com/
 
 
@@ -250,16 +262,21 @@ Let’s add some data to our MongoDB, so we can actually see something on the pa
 Let’s get into our Docker container and manually add data. You could also import it, if you have previously backed it up.
  
 ```
-    $osxterm: docker exec -it <CONTAINERID running NODE image> /bin/bash
+    $osxterm: docker exec -it <CONTAINERID running CENTOS image> /bin/bash
 ```
 
 ### Install Mongo Shell to Connect to Our DB
 The shell will enable us to connect directly to a linked container: 
 ```
-    $ root: apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
-    $ root: echo "deb http://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.2 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-3.2.list 
-    $ root: apt-get update
-    $ root: apt-get install -y mongodb-org-shell   
+    $ root: vi /etc/yum.repos.d/mongodb-org-3.2.repo
+    //Paste into above file
+    [mongodb-org-3.2]
+    name=MongoDB Repository
+    baseurl=https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/3.2/x86_64/
+    gpgcheck=0
+    enabled=1
+
+    $ root: yum install -y mongodb-org 
 ```
 
 Once Mongo Shell is installed, we need to find out the IP of our MongoDB container. Our MongoDB container is not exposed to the public DNS, so we cannot access it directly. We will have to access it via the main container that is exposed. Read this section to understand how our containers are talking to each other: [Connect with the linking system](https://docs.docker.com/engine/userguide/networking/default_network/dockerlinks/)
@@ -268,9 +285,9 @@ Once Mongo Shell is installed, we need to find out the IP of our MongoDB contain
 ```
     $ root: cat /etc/hosts
     
-    %: 172.17.0.2	db 3fac66047f37 rateinstructor_db_1
-       172.17.0.2	db_1 3fac66047f37 rateinstructor_db_1
-       172.17.0.2	rateinstructor_db_1 3fac66047f37
+    %: 172.17.0.2	db 729371a78b62 rateinstructordemodockeraws_db_1
+       172.17.0.2	db_1 729371a78b62 rateinstructordemodockeraws_db_1
+       172.17.0.2	rateinstructordemodockeraws_db_1 729371a78b62
 ```
 
 Eureka! We now found the IP of the MongoDB container. Let’s go ahead and, using Mongo Shell, connect to that container.
