@@ -55,18 +55,26 @@ Let’s move from our local environment to the cloud. We all love flying in the 
 
 
 ![Image showing our container in AWS](http://s21.postimg.org/3r96w9ocn/Screen_Shot_2016_02_02_at_8_22_25_AM.png)
+
+
 Source: [Evan Brown (AWS)](https://youtu.be/OzLXj2W2Rss?list=PLVjIiWGLQYcp_BIIPAB1UuNWMwaL5mXtx)
 
 
 ### Signing Up for AWS and Configuration 
 
 I. [Create an AWS account FREE tier.](https://aws.amazon.com/console/ "Amazon Console")
+
+
 II. Note down your access ID, secret key
+
+
 III. Go create a VPC /or use the default (in correct Availability zone)
-![AWS VPCIP](https://www.evernote.com/l/AF3K_mYH59hD7IvA42598ZwyOYdSvfIOz9w)
+![AWS VPCIP](http://s21.postimg.org/knbas4pw7/VPC_Management_Console.png)
+
+
 IIII. Check if there is an existing security group, if not create one. 
 NOTE: Security groups - allow you to setup rules around what/who can access your VPC, and control access from individual instances.
-![Security Group](https://www.evernote.com/l/AF0buUB-AENF0aiRrOa0l7Uwxxemvl_9wXI)
+![Security Group](http://s11.postimg.org/qgchlsmoj/image.png)
 
 NOTE: To get the VPC ID, click on the VPC icon in the Amazon Console Dashboard. 
 NOTE #2: For a simple setup, use the "Start VPC Wizard." If you are not familiar why we need to setup a VPC: [Amazon Virtual Private Cloud (VPC)](https://aws.amazon.com/vpc/) 
@@ -197,7 +205,7 @@ CMD ["node", "/src/server.js"]
 
 The biggies: 
 
-FROM - centos. Any Dockerfile must start with an image. You can find images like MongoDB, Redis, etc. right here: [Images](https://hub.docker.com/)
+FROM - centos. Any Dockerfile must start with an image. You can find images like MongoDB, Redis, etc. right here: [Docker Images Directory](https://hub.docker.com/)
 
 EXPOSE 8080 - Internal port for the CONTAINER. This is what server.js is listening to. See app.listen(8000);
 
@@ -235,7 +243,7 @@ dbdata:
 
 The biggies: 
 Build context that is sent to the Docker daemon. Make sure you are not in your root directory when running 'docker-compose up' because the Docker build sends the whole directory (if you are in root, your whole filesystem) to the DEMON, which executes your build. Github issue.
- [Github issue](https://github.com/docker/docker/issues/2342 "AirPair Posts")
+ [Github issue](https://github.com/docker/docker/issues/2342 "Github issues")
 
 /usr/lib/mongodb. Docker volumes, by default, mount in read-write mode, but you can also set it to be mounted read-only (e.g., /usr/lib/mongodb:ro)
 
@@ -252,7 +260,7 @@ All the setup is done. We now get the payoff:
 ```
 
 Check Public DNS (from AWS) - you should be up and running.    
-http://ec2-54-86-155-250.compute-1.amazonaws.com/
+    http://instantdemo-env.elasticbeanstalk.com/
 
 
 ## Fill Your DB With Data
@@ -267,17 +275,29 @@ Let’s get into our Docker container and manually add data. You could also impo
 
 ### Install Mongo Shell to Connect to Our DB
 The shell will enable us to connect directly to a linked container: 
-```
-    $ root: vi /etc/yum.repos.d/mongodb-org-3.2.repo
-    //Paste into above file
-    [mongodb-org-3.2]
-    name=MongoDB Repository
-    baseurl=https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/3.2/x86_64/
-    gpgcheck=0
-    enabled=1
 
-    $ root: yum install -y mongodb-org 
+Open the yum repo file
 ```
+$ root: vi /etc/yum.repos.d/mongodb-org-2.6.repo
+```
+
+Paste in the file (save :)
+```
+[mongodb-org-2.6]
+name=MongoDB 2.6 Repository
+baseurl=http://downloads-distro.mongodb.org/repo/redhat/os/x86_64/
+gpgcheck=0
+enabled=1
+```
+
+Install the mongo shell 
+```
+$ root: yum install -y mongodb-org-shell
+```
+
+[Ref for Mongo Install](https://docs.mongodb.org/manual/tutorial/install-mongodb-on-red-hat/)
+
+
 
 Once Mongo Shell is installed, we need to find out the IP of our MongoDB container. Our MongoDB container is not exposed to the public DNS, so we cannot access it directly. We will have to access it via the main container that is exposed. Read this section to understand how our containers are talking to each other: [Connect with the linking system](https://docs.docker.com/engine/userguide/networking/default_network/dockerlinks/)
 
